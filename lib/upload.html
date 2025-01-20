@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="ar">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>منصة رفع الصور</title>
+    <!-- إضافة خط Cairo من Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
+    <!-- إضافة Font Awesome للأيقونات -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <style>
+      /* تنسيق عام */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: 'Cairo', sans-serif;
+      }
+
+      body {
+        background-color: #f0f4f8;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        direction: rtl;
+        padding: 1rem;
+      }
+
+      .container {
+        background-color: #ffffff;
+        padding: 2rem;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        max-width: 800px; /* زيادة العرض الأقصى */
+        text-align: center;
+        margin: 1rem;
+      }
+
+      .logo {
+        width: 120px; /* زيادة حجم اللوجو */
+        margin-bottom: 1.5rem;
+      }
+
+      h1 {
+        font-size: 2rem; /* زيادة حجم العنوان */
+        color: #2c3e50;
+        margin-bottom: 1.5rem;
+      }
+
+      .upload-form {
+        margin-bottom: 2rem;
+      }
+
+      .upload-form input[type="file"] {
+        display: none;
+      }
+
+      .upload-form label {
+        background-color: #3498db;
+        color: #ffffff;
+        padding: 1rem 2rem; /* زيادة الحشوة */
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 1.1rem; /* زيادة حجم الخط */
+        transition: background-color 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.75rem; /* زيادة المسافة بين الأيقونة والنص */
+        margin: 0.75rem;
+      }
+
+      .upload-form label:hover {
+        background-color: #2980b9;
+      }
+
+      .file-info {
+        margin-top: 1.5rem;
+        text-align: right;
+      }
+
+      .file-info p {
+        margin: 0.75rem 0;
+        color: #2c3e50;
+        font-size: 1rem;
+      }
+
+      .progress-bar {
+        width: 100%;
+        background-color: #e0e0e0;
+        border-radius: 5px;
+        margin: 1.5rem 0;
+        overflow: hidden;
+      }
+
+      .progress {
+        width: 0%;
+        height: 20px;
+        background-color: #3498db;
+        border-radius: 5px;
+        transition: width 0.3s ease;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 2rem;
+      }
+
+      table, th, td {
+        border: 1px solid #ddd;
+      }
+
+      th, td {
+        padding: 12px; /* زيادة الحشوة */
+        text-align: right;
+      }
+
+      th {
+        background-color: #3498db;
+        color: #ffffff;
+      }
+
+      td a {
+        color: #3498db;
+        text-decoration: none;
+      }
+
+      td a:hover {
+        text-decoration: underline;
+      }
+
+      /* تحسينات للشاشات الصغيرة */
+      @media (max-width: 768px) {
+        .container {
+          padding: 1.5rem;
+        }
+
+        h1 {
+          font-size: 1.75rem;
+        }
+
+        .upload-form label {
+          padding: 0.75rem 1.5rem;
+          font-size: 1rem;
+        }
+
+        .file-info p {
+          font-size: 0.9rem;
+        }
+
+        th, td {
+          padding: 10px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- إضافة لوجو المنصة -->
+      <img src="/assets/logo.png" alt="لوجو المنصة" class="logo" />
+      <h1>Dream Image Links Generator</h1>
+
+      <!-- نموذج الرفع -->
+      <form id="uploadForm" class="upload-form">
+        <!-- زر اختيار ملف ZIP -->
+        <label for="zipFile">
+          <i class="fas fa-file-archive"></i> اختر ملف ZIP
+        </label>
+        <input type="file" name="zipFile" id="zipFile" accept=".zip" required />
+
+        <!-- زر الرفع -->
+        <label for="uploadButton" id="uploadLabel">
+          <i class="fas fa-upload"></i> رفع الملف
+        </label>
+        <button type="submit" id="uploadButton" style="display: none;"></button>
+
+        <!-- معلومات الملف -->
+        <div class="file-info" id="fileInfo">
+          <p id="fileName"></p>
+          <p id="fileSize"></p>
+          <p id="fileCount"></p>
+        </div>
+      </form>
+
+      <!-- مؤشر التقدم -->
+      <div class="progress-bar">
+        <div class="progress" id="progressBar"></div>
+      </div>
+
+      <!-- جدول الصور -->
+      <table id="imageTable">
+        <thead>
+          <tr>
+            <th>اسم الصورة</th>
+            <th>الرابط</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- الصور ستظهر هنا -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Socket.IO -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const socket = io();
+
+      // تحديث مؤشر التقدم
+      socket.on("progress", (data) => {
+        const progressBar = document.getElementById("progressBar");
+        progressBar.style.width = `${data.progress}%`;
+      });
+
+      // إضافة صورة إلى الجدول
+      socket.on("image-added", (data) => {
+        const tableBody = document.querySelector("#imageTable tbody");
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${data.name}</td>
+          <td><a href="${data.url}" target="_blank">${data.url}</a></td>
+        `;
+        tableBody.appendChild(row);
+      });
+
+      // إرسال الملف عند الرفع
+      document.getElementById("uploadForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const fileInput = document.getElementById("zipFile");
+        const formData = new FormData();
+        formData.append("zipFile", fileInput.files[0]);
+
+        fetch("/upload", {
+          method: "POST",
+          body: formData,
+        })
+          .then((response) => response.blob())
+          .then((blob) => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "image_links.xlsx";
+            a.click();
+          })
+          .catch((err) => console.error(err));
+      });
+
+      // عرض معلومات الملف
+      document.getElementById("zipFile").addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          // عرض اسم الملف وحجمه
+          document.getElementById("fileName").textContent = `اسم الملف: ${file.name}`;
+          document.getElementById("fileSize").textContent = `حجم الملف: ${(file.size / 1024 / 1024).toFixed(2)} MB`;
+
+          // قراءة ملف ZIP وحساب عدد الملفات
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            const zip = new AdmZip(event.target.result);
+            const zipEntries = zip.getEntries();
+            const fileCount = zipEntries.filter((entry) => !entry.isDirectory).length;
+            document.getElementById("fileCount").textContent = `عدد الملفات: ${fileCount}`;
+          };
+          reader.readAsArrayBuffer(file);
+        }
+      });
+    </script>
+  </body>
+</html>
