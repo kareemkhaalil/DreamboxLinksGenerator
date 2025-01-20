@@ -154,6 +154,18 @@
           padding: 10px;
         }
       }
+
+      /* مؤشر التحميل */
+      .loading-spinner {
+        display: none;
+        margin-top: 1rem;
+        font-size: 1.2rem;
+        color: #3498db;
+      }
+
+      .loading-spinner i {
+        margin-left: 0.5rem;
+      }
     </style>
   </head>
   <body>
@@ -187,6 +199,11 @@
       <!-- مؤشر التقدم -->
       <div class="progress-bar">
         <div class="progress" id="progressBar"></div>
+      </div>
+
+      <!-- مؤشر التحميل -->
+      <div class="loading-spinner" id="loadingSpinner">
+        <i class="fas fa-spinner fa-spin"></i> جاري الرفع...
       </div>
 
       <!-- جدول الصور -->
@@ -232,6 +249,9 @@
         const formData = new FormData();
         formData.append("zipFile", fileInput.files[0]);
 
+        // إظهار مؤشر التحميل
+        document.getElementById("loadingSpinner").style.display = "block";
+
         fetch("/upload", {
           method: "POST",
           body: formData,
@@ -243,8 +263,14 @@
             a.href = url;
             a.download = "image_links.xlsx";
             a.click();
+
+            // إخفاء مؤشر التحميل بعد الانتهاء
+            document.getElementById("loadingSpinner").style.display = "none";
           })
-          .catch((err) => console.error(err));
+          .catch((err) => {
+            console.error(err);
+            document.getElementById("loadingSpinner").style.display = "none";
+          });
       });
 
       // عرض معلومات الملف
